@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: leave-management-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: leave_management
+      POSTGRES_USER: leave_user
+      POSTGRES_PASSWORD: leave_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leave_user -d leave_management"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: leave-management-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: leave_user
+      DB_PASSWORD: leave_password
+      DB_DATABASE: leave_management
+      TYPEORM_SYNC: "true"
+      JWT_SECRET: change-this-secret-in-production
+      JWT_EXPIRES_IN: 1d
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
