@@ -1,7 +1,12 @@
 import * as bcrypt from "bcryptjs";
+import { ApprovalDecision } from "../common/enums/approval-decision.enum";
+import { ApprovalStage } from "../common/enums/approval-stage.enum";
+import { LeaveStatus } from "../common/enums/leave-status.enum";
 import { UserRole } from "../common/enums/user-role.enum";
 import { Department } from "../departments/department.entity";
 import { Employee } from "../employees/employee.entity";
+import { Approval } from "../leave-requests/approval.entity";
+import { LeaveRequest } from "../leave-requests/leave-request.entity";
 import { LeaveType } from "../leave-types/leave-type.entity";
 import { Role } from "../roles/role.entity";
 import { AppDataSource } from "../database/data-source";
@@ -94,19 +99,29 @@ async function seedLeaveTypes() {
     },
   ];
 
+  const leaveTypeMap = new Map<string, LeaveType>();
+
   for (const leaveTypeData of leaveTypes) {
-    const existingLeaveType = await leaveTypeRepository.findOneBy({
+    let leaveType = await leaveTypeRepository.findOneBy({
       name: leaveTypeData.name,
     });
-    if (!existingLeaveType) {
-      await leaveTypeRepository.save(
+    if (!leaveType) {
+      leaveType = await leaveTypeRepository.save(
         leaveTypeRepository.create({
           ...leaveTypeData,
           isActive: true,
         }),
       );
+    } else {
+      leaveType.description = leaveTypeData.description;
+      leaveType.annualAllowanceDays = leaveTypeData.annualAllowanceDays;
+      leaveType.isActive = true;
+      leaveType = await leaveTypeRepository.save(leaveType);
     }
+    leaveTypeMap.set(leaveType.name, leaveType);
   }
+
+  return leaveTypeMap;
 }
 
 async function seedEmployees(
@@ -119,6 +134,8 @@ async function seedEmployees(
   const humanResources = departments.get("Human Resources")!;
   const engineering = departments.get("Engineering")!;
   const finance = departments.get("Finance")!;
+
+  const employeeMap = new Map<string, Employee>();
 
   async function upsertEmployee(input: {
     firstName: string;
@@ -157,7 +174,9 @@ async function seedEmployees(
       employee.isActive = true;
     }
 
-    return employeeRepository.save(employee);
+    const savedEmployee = await employeeRepository.save(employee);
+    employeeMap.set(savedEmployee.email, savedEmployee);
+    return savedEmployee;
   }
 
   const admin = await upsertEmployee({
@@ -248,6 +267,181 @@ async function seedEmployees(
     jobTitle: "QA Analyst",
     manager: engineeringManager,
   });
+
+  return employeeMap;
+}
+
+async function seedLeaveRequests(
+  employees: Map<string, Employee>,
+  leaveTypes: Map<string, LeaveType>,
+) {
+  const leaveRequestRepository = AppDataSource.getRepository(LeaveRequest);
+  const approvalRepository = AppDataSource.getRepository(Approval);
+
+  async function upsertLeaveRequest(input: {
+    employee: Employee;
+    leaveType: LeaveType;
+    startDate: string;
+    endDate: string;
+    reason: string;
+    status: LeaveStatus;
+    currentStage: ApprovalStage;
+    approvals: Array<{
+      approver: Employee;
+      stage: ApprovalStage;
+      decision: ApprovalDecision;
+      comments: string;
+    }>;
+  }) {
+    let leaveRequest = await leaveRequestRepository.findOne({
+      where: {
+        employee: { id: input.employee.id },
+        leaveType: { id: input.leaveType.id },
+        startDate: input.startDate,
+      },
+      relations: ["employee", "leaveType", "approvals"],
+    });
+
+    if (!leaveRequest) {
+      leaveRequest = leaveRequestRepository.create({
+        employee: input.employee,
+        leaveType: input.leaveType,
+        startDate: input.startDate,
+      });
+    }
+
+    leaveRequest.endDate = input.endDate;
+    leaveRequest.reason = input.reason;
+    leaveRequest.status = input.status;
+    leaveRequest.currentStage = input.currentStage;
+
+    const savedLeaveRequest = await leaveRequestRepository.save(leaveRequest);
+
+    await approvalRepository
+      .createQueryBuilder()
+      .delete()
+      .where("leave_request_id = :id", { id: savedLeaveRequest.id })
+      .execute();
+
+    if (input.approvals.length) {
+      await approvalRepository.save(
+        input.approvals.map((approval) =>
+          approvalRepository.create({
+            leaveRequest: savedLeaveRequest,
+            approver: approval.approver,
+            stage: approval.stage,
+            decision: approval.decision,
+            comments: approval.comments,
+          }),
+        ),
+      );
+    }
+  }
+
+  const admin = employees.get("admin@erp.local")!;
+  const hr = employees.get("hr@erp.local")!;
+  const engineeringManager = employees.get("manager.engineering@erp.local")!;
+  const financeManager = employees.get("manager.finance@erp.local")!;
+  const employee1 = employees.get("employee1@erp.local")!;
+  const employee2 = employees.get("employee2@erp.local")!;
+  const employee3 = employees.get("employee3@erp.local")!;
+  const employee4 = employees.get("employee4@erp.local")!;
+  const employee5 = employees.get("employee5@erp.local")!;
+
+  await upsertLeaveRequest({
+    employee: employee1,
+    leaveType: leaveTypes.get("Annual Leave")!,
+    startDate: "2026-07-01",
+    endDate: "2026-07-05",
+    reason: "Family vacation planned before the new release cycle.",
+    status: LeaveStatus.PENDING,
+    currentStage: ApprovalStage.MANAGER,
+    approvals: [],
+  });
+
+  await upsertLeaveRequest({
+    employee: employee2,
+    leaveType: leaveTypes.get("Sick Leave")!,
+    startDate: "2026-06-20",
+    endDate: "2026-06-21",
+    reason: "Medical appointment and recovery period.",
+    status: LeaveStatus.PENDING,
+    currentStage: ApprovalStage.HR,
+    approvals: [
+      {
+        approver: engineeringManager,
+        stage: ApprovalStage.MANAGER,
+        decision: ApprovalDecision.APPROVED,
+        comments: "Sprint coverage has been arranged.",
+      },
+    ],
+  });
+
+  await upsertLeaveRequest({
+    employee: employee3,
+    leaveType: leaveTypes.get("Annual Leave")!,
+    startDate: "2026-08-10",
+    endDate: "2026-08-15",
+    reason: "Scheduled annual leave after finance close.",
+    status: LeaveStatus.APPROVED,
+    currentStage: ApprovalStage.COMPLETED,
+    approvals: [
+      {
+        approver: financeManager,
+        stage: ApprovalStage.MANAGER,
+        decision: ApprovalDecision.APPROVED,
+        comments: "No payroll reporting conflict.",
+      },
+      {
+        approver: hr,
+        stage: ApprovalStage.HR,
+        decision: ApprovalDecision.APPROVED,
+        comments: "Final approval recorded.",
+      },
+    ],
+  });
+
+  await upsertLeaveRequest({
+    employee: employee4,
+    leaveType: leaveTypes.get("Compassionate Leave")!,
+    startDate: "2026-06-18",
+    endDate: "2026-06-19",
+    reason: "Urgent family support request.",
+    status: LeaveStatus.REJECTED,
+    currentStage: ApprovalStage.COMPLETED,
+    approvals: [
+      {
+        approver: financeManager,
+        stage: ApprovalStage.MANAGER,
+        decision: ApprovalDecision.REJECTED,
+        comments: "Critical payroll run coverage is unavailable.",
+      },
+    ],
+  });
+
+  await upsertLeaveRequest({
+    employee: employee5,
+    leaveType: leaveTypes.get("Maternity Leave")!,
+    startDate: "2026-09-01",
+    endDate: "2026-11-29",
+    reason: "Planned maternity leave with handover schedule.",
+    status: LeaveStatus.APPROVED,
+    currentStage: ApprovalStage.COMPLETED,
+    approvals: [
+      {
+        approver: engineeringManager,
+        stage: ApprovalStage.MANAGER,
+        decision: ApprovalDecision.APPROVED,
+        comments: "QA ownership transfer is documented.",
+      },
+      {
+        approver: admin,
+        stage: ApprovalStage.HR,
+        decision: ApprovalDecision.APPROVED,
+        comments: "Approved on behalf of HR administration.",
+      },
+    ],
+  });
 }
 
 async function runSeed() {
@@ -256,8 +450,9 @@ async function runSeed() {
   try {
     const roles = await seedRoles();
     const departments = await seedDepartments();
-    await seedLeaveTypes();
-    await seedEmployees(roles, departments);
+    const leaveTypes = await seedLeaveTypes();
+    const employees = await seedEmployees(roles, departments);
+    await seedLeaveRequests(employees, leaveTypes);
     console.log("Seed data created or updated successfully.");
   } finally {
     await AppDataSource.destroy();

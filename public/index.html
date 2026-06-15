@@ -8,6 +8,50 @@
   </head>
   <body>
     <main id="loginScreen" class="login-shell">
+      <section class="login-showcase" aria-label="Leave operations overview">
+        <div class="showcase-header">
+          <p class="eyebrow">People Operations</p>
+          <h1>
+            Leave planning with approvals, policy control, and audit trail.
+          </h1>
+          <p>
+            A complete workspace for HR teams, managers, and employees to keep
+            time-off decisions clear and accountable.
+          </p>
+        </div>
+        <div class="showcase-grid">
+          <article class="showcase-card tone-teal">
+            <span>Manager Queue</span>
+            <strong>Subordinate review</strong>
+          </article>
+          <article class="showcase-card tone-amber">
+            <span>HR Desk</span>
+            <strong>Final approval</strong>
+          </article>
+          <article class="showcase-card tone-blue">
+            <span>Policy Library</span>
+            <strong>4 seeded leave types</strong>
+          </article>
+          <article class="showcase-card tone-rose">
+            <span>Audit Trail</span>
+            <strong>Tracked changes</strong>
+          </article>
+        </div>
+        <div class="calendar-visual" aria-hidden="true">
+          <div class="calendar-bar"></div>
+          <div class="calendar-days">
+            <span></span><span></span><span></span><span></span> <span></span
+            ><span></span><span></span><span></span> <span></span><span></span
+            ><span></span><span></span>
+          </div>
+          <div class="approval-lane">
+            <span>Employee</span>
+            <span>Manager</span>
+            <span>HR</span>
+          </div>
+        </div>
+      </section>
+
       <section class="login-panel">
         <div>
           <p class="eyebrow">ERP Leave Management</p>
@@ -45,13 +89,21 @@
         <div>
           <p class="section-label">Seeded users</p>
           <div class="quick-logins">
-            <button type="button" data-login="admin@erp.local">Admin</button>
-            <button type="button" data-login="hr@erp.local">HR</button>
+            <button type="button" data-login="admin@erp.local">
+              <strong>Admin</strong>
+              <span>Full access</span>
+            </button>
+            <button type="button" data-login="hr@erp.local">
+              <strong>HR</strong>
+              <span>Final approvals</span>
+            </button>
             <button type="button" data-login="manager.engineering@erp.local">
-              Manager
+              <strong>Manager</strong>
+              <span>Team queue</span>
             </button>
             <button type="button" data-login="employee1@erp.local">
-              Employee
+              <strong>Employee</strong>
+              <span>Self service</span>
             </button>
           </div>
         </div>
@@ -63,8 +115,15 @@
     <main id="appScreen" class="app-shell hidden">
       <aside class="sidebar">
         <div class="brand-block">
-          <p class="eyebrow">Obiri ERP</p>
-          <h2>Leave</h2>
+          <div class="brand-mark">O</div>
+          <div>
+            <p class="eyebrow">Obiri ERP</p>
+            <h2>Leave</h2>
+          </div>
+        </div>
+        <div class="sidebar-summary">
+          <span>Approval route</span>
+          <strong>Manager -> HR</strong>
         </div>
         <nav id="appNav" class="nav-list" aria-label="Application views">
           <button class="active" type="button" data-view="dashboard">
@@ -104,6 +163,31 @@
         <div id="toast" class="toast hidden" role="status"></div>
 
         <section id="dashboardView" class="view">
+          <section class="ops-banner">
+            <div class="ops-copy">
+              <p class="eyebrow">Live Operations</p>
+              <h2 id="dashboardHeadline">Leave desk ready</h2>
+              <p id="dashboardNarrative">
+                Requests, policies, people, and approvals are available from one
+                workspace.
+              </p>
+            </div>
+            <div class="ops-highlights">
+              <article>
+                <span>Coverage</span>
+                <strong id="coverageSignal">Clear</strong>
+              </article>
+              <article>
+                <span>Departments</span>
+                <strong id="departmentSignal">0</strong>
+              </article>
+              <article>
+                <span>Policies</span>
+                <strong id="policySignal">0</strong>
+              </article>
+            </div>
+          </section>
+
           <div class="metrics-grid">
             <article class="metric">
               <span>Total Requests</span>
@@ -120,6 +204,25 @@
             <article class="metric accent-red">
               <span>Rejected</span>
               <strong id="metricRejected">0</strong>
+            </article>
+          </div>
+
+          <div class="workflow-strip">
+            <article>
+              <span>01</span>
+              <strong>Employee submits</strong>
+            </article>
+            <article>
+              <span>02</span>
+              <strong>Manager reviews</strong>
+            </article>
+            <article>
+              <span>03</span>
+              <strong>HR finalizes</strong>
+            </article>
+            <article>
+              <span>04</span>
+              <strong>Audit records</strong>
             </article>
           </div>
 
@@ -143,7 +246,12 @@
           <div class="split-grid request-layout">
             <article class="panel">
               <div class="panel-heading">
-                <h2>Submit Leave Request</h2>
+                <div>
+                  <h2>Submit Leave Request</h2>
+                  <p class="panel-subtitle">
+                    Dates are checked before approval.
+                  </p>
+                </div>
               </div>
               <form id="requestForm" class="form-grid">
                 <label>
@@ -175,7 +283,10 @@
 
             <article class="panel">
               <div class="panel-heading">
-                <h2>Requests</h2>
+                <div>
+                  <h2>Requests</h2>
+                  <p class="panel-subtitle">Sorted by newest activity.</p>
+                </div>
                 <select id="requestFilter" aria-label="Filter requests">
                   <option value="all">All</option>
                   <option value="Pending">Pending</option>
@@ -192,7 +303,10 @@
           <div class="split-grid">
             <article class="panel admin-only">
               <div class="panel-heading">
-                <h2 id="departmentFormTitle">Create Department</h2>
+                <div>
+                  <h2 id="departmentFormTitle">Create Department</h2>
+                  <p class="panel-subtitle">Group people by operating unit.</p>
+                </div>
               </div>
               <form id="departmentForm" class="stack">
                 <input id="departmentId" type="hidden" />
@@ -214,7 +328,10 @@
             </article>
             <article class="panel">
               <div class="panel-heading">
-                <h2>Departments</h2>
+                <div>
+                  <h2>Departments</h2>
+                  <p class="panel-subtitle">Teams with assigned employees.</p>
+                </div>
               </div>
               <div id="departmentsList" class="data-list"></div>
             </article>
@@ -225,7 +342,10 @@
           <div class="split-grid">
             <article class="panel admin-only">
               <div class="panel-heading">
-                <h2 id="employeeFormTitle">Create Employee</h2>
+                <div>
+                  <h2 id="employeeFormTitle">Create Employee</h2>
+                  <p class="panel-subtitle">Assign role, team, and manager.</p>
+                </div>
               </div>
               <form id="employeeForm" class="form-grid">
                 <input id="employeeId" type="hidden" />
@@ -284,7 +404,10 @@
             </article>
             <article class="panel">
               <div class="panel-heading">
-                <h2>Employees</h2>
+                <div>
+                  <h2>Employees</h2>
+                  <p class="panel-subtitle">Directory and approval lines.</p>
+                </div>
               </div>
               <div id="employeesList" class="data-list"></div>
             </article>
@@ -295,7 +418,10 @@
           <div class="split-grid">
             <article class="panel hr-only">
               <div class="panel-heading">
-                <h2 id="leaveTypeFormTitle">Create Leave Type</h2>
+                <div>
+                  <h2 id="leaveTypeFormTitle">Create Leave Type</h2>
+                  <p class="panel-subtitle">Maintain HR policy categories.</p>
+                </div>
               </div>
               <form id="leaveTypeForm" class="form-grid">
                 <input id="leaveTypeId" type="hidden" />
@@ -331,7 +457,10 @@
             </article>
             <article class="panel">
               <div class="panel-heading">
-                <h2>Leave Types</h2>
+                <div>
+                  <h2>Leave Types</h2>
+                  <p class="panel-subtitle">Entitlements available to staff.</p>
+                </div>
               </div>
               <div id="leaveTypesList" class="data-list"></div>
             </article>
@@ -341,7 +470,10 @@
         <section id="auditLogsView" class="view hidden">
           <article class="panel">
             <div class="panel-heading">
-              <h2>Audit Logs</h2>
+              <div>
+                <h2>Audit Logs</h2>
+                <p class="panel-subtitle">Recorded changes and approvals.</p>
+              </div>
             </div>
             <div id="auditLogsList" class="data-list audit-list"></div>
           </article>

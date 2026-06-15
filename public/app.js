@@ -70,6 +70,35 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+function dayCount(startDate, endDate) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+  return Math.max(1, Math.round((end - start) / 86400000) + 1);
+}
+
+function initials(firstName, lastName) {
+  return `${String(firstName || "").charAt(0)}${String(lastName || "").charAt(
+    0,
+  )}`.toUpperCase();
+}
+
+function toneFor(value) {
+  const tones = [
+    "tone-teal",
+    "tone-amber",
+    "tone-blue",
+    "tone-green",
+    "tone-rose",
+  ];
+  const text = String(value || "default");
+  const index = [...text].reduce(
+    (total, char) => total + char.charCodeAt(0),
+    0,
+  );
+  return tones[index % tones.length];
+}
+
 function normalizeRole(employee) {
   if (!employee) return "EMPLOYEE";
   if (typeof employee.role === "string") return employee.role;
@@ -186,13 +215,19 @@ function updateShellVisibility() {
 
   document
     .querySelectorAll("[data-view='departments']")
-    .forEach((button) => button.classList.toggle("hidden", !canViewPeopleData()));
+    .forEach((button) =>
+      button.classList.toggle("hidden", !canViewPeopleData()),
+    );
   document
     .querySelectorAll("[data-view='employees']")
-    .forEach((button) => button.classList.toggle("hidden", !canViewPeopleData()));
+    .forEach((button) =>
+      button.classList.toggle("hidden", !canViewPeopleData()),
+    );
   document
     .querySelectorAll("[data-view='auditLogs']")
-    .forEach((button) => button.classList.toggle("hidden", !canViewAuditLogs()));
+    .forEach((button) =>
+      button.classList.toggle("hidden", !canViewAuditLogs()),
+    );
 
   document
     .querySelectorAll(".admin-only")
@@ -207,7 +242,8 @@ function updateShellVisibility() {
 }
 
 function setView(nextView) {
-  if (nextView === "departments" && !canViewPeopleData()) nextView = "dashboard";
+  if (nextView === "departments" && !canViewPeopleData())
+    nextView = "dashboard";
   if (nextView === "employees" && !canViewPeopleData()) nextView = "dashboard";
   if (nextView === "auditLogs" && !canViewAuditLogs()) nextView = "dashboard";
 
@@ -237,14 +273,19 @@ async function loadData() {
     : Promise.resolve([]);
 
   try {
-    const [requestData, leaveTypeData, departmentData, employeeData, auditData] =
-      await Promise.all([
-        requests,
-        leaveTypes,
-        departments,
-        employees,
-        auditLogs,
-      ]);
+    const [
+      requestData,
+      leaveTypeData,
+      departmentData,
+      employeeData,
+      auditData,
+    ] = await Promise.all([
+      requests,
+      leaveTypes,
+      departments,
+      employees,
+      auditLogs,
+    ]);
 
     state.data.requests = requestData;
     state.data.leaveTypes = leaveTypeData;
@@ -277,22 +318,31 @@ function renderAll() {
 
 function renderDashboard() {
   const requests = state.data.requests;
-  $("metricTotal").textContent = requests.length;
-  $("metricPending").textContent = requests.filter(
-    (request) => request.status === "Pending",
-  ).length;
-  $("metricApproved").textContent = requests.filter(
-    (request) => request.status === "Approved",
-  ).length;
-  $("metricRejected").textContent = requests.filter(
-    (request) => request.status === "Rejected",
-  ).length;
+  const actionable = requests.filter(canActOnRequest);
+  const pending = requests.filter((request) => request.status === "Pending");
+  const approved = requests.filter((request) => request.status === "Approved");
+  const rejected = requests.filter((request) => request.status === "Rejected");
 
-  renderRequestCollection(
-    $("pendingActions"),
-    requests.filter(canActOnRequest).slice(0, 4),
-    { compact: true },
-  );
+  $("metricTotal").textContent = requests.length;
+  $("metricPending").textContent = pending.length;
+  $("metricApproved").textContent = approved.length;
+  $("metricRejected").textContent = rejected.length;
+  $("coverageSignal").textContent = actionable.length
+    ? `${actionable.length} due`
+    : "Clear";
+  $("departmentSignal").textContent = state.data.departments.length || "Self";
+  $("policySignal").textContent = state.data.leaveTypes.length;
+
+  $("dashboardHeadline").textContent = actionable.length
+    ? `${actionable.length} request${actionable.length === 1 ? "" : "s"} need review`
+    : "Leave desk is up to date";
+  $("dashboardNarrative").textContent = pending.length
+    ? `${pending.length} pending request${pending.length === 1 ? "" : "s"} moving through manager and HR review.`
+    : "No pending approvals are waiting in the current role queue.";
+
+  renderRequestCollection($("pendingActions"), actionable.slice(0, 4), {
+    compact: true,
+  });
   renderRequestCollection($("recentRequests"), requests.slice(0, 5), {
     compact: true,
   });
@@ -304,7 +354,7 @@ function statusClass(status) {
 
 function renderRequestCollection(container, requests, options = {}) {
   if (!requests.length) {
-    container.innerHTML = `<div class="empty-state">No leave requests to show.</div>`;
+    container.innerHTML = `<div class="empty-state">No matching leave requests.</div>`;
     return;
   }
 
@@ -317,6 +367,8 @@ function renderRequestCard(request, options = {}) {
   const employeeName = `${request.employee?.firstName || ""} ${
     request.employee?.lastName || ""
   }`.trim();
+  const tone = toneFor(request.leaveType?.name || request.id);
+  const days = dayCount(request.startDate, request.endDate);
   const approvals = request.approvals || [];
   const approvalHistory = approvals.length
     ? `<div class="approval-history">${approvals
@@ -345,11 +397,17 @@ function renderRequestCard(request, options = {}) {
     : "";
 
   return `
-    <article class="request-card">
+    <article class="request-card ${tone}">
       <div class="request-card-header">
-        <div>
-          <h3>${escapeHtml(request.leaveType?.name || "Leave Request")}</h3>
-          <p class="muted">${escapeHtml(employeeName || "Employee")}</p>
+        <div class="identity-line">
+          <div class="avatar ${tone}">${escapeHtml(
+            initials(request.employee?.firstName, request.employee?.lastName) ||
+              "LR",
+          )}</div>
+          <div>
+            <h3>${escapeHtml(request.leaveType?.name || "Leave Request")}</h3>
+            <p class="muted">${escapeHtml(employeeName || "Employee")}</p>
+          </div>
         </div>
         <span class="status ${statusClass(request.status)}">${escapeHtml(
           request.status,
@@ -362,6 +420,9 @@ function renderRequestCard(request, options = {}) {
         <div><span>End</span><strong>${formatDate(
           request.endDate,
         )}</strong></div>
+        <div><span>Duration</span><strong>${days} day${
+          days === 1 ? "" : "s"
+        }</strong></div>
         <div><span>Stage</span><strong>${escapeHtml(
           request.currentStage,
         )}</strong></div>
@@ -396,15 +457,21 @@ function renderDepartments() {
   }
 
   container.innerHTML = state.data.departments
-    .map(
-      (department) => `
-        <article class="data-card">
+    .map((department) => {
+      const tone = toneFor(department.name);
+      return `
+        <article class="data-card ${tone}">
           <div class="data-card-header">
-            <div>
-              <h3>${escapeHtml(department.name)}</h3>
-              <p class="muted">${escapeHtml(
-                department.description || "No description",
-              )}</p>
+            <div class="identity-line">
+              <div class="avatar ${tone}">${escapeHtml(
+                initials(department.name, "department") || "D",
+              )}</div>
+              <div>
+                <h3>${escapeHtml(department.name)}</h3>
+                <p class="muted">${escapeHtml(
+                  department.description || "No description",
+                )}</p>
+              </div>
             </div>
             ${
               canManageDepartments()
@@ -424,8 +491,8 @@ function renderDepartments() {
             )}</strong></div>
           </div>
         </article>
-      `,
-    )
+      `;
+    })
     .join("");
 }
 
@@ -439,14 +506,23 @@ function renderEmployees() {
   container.innerHTML = state.data.employees
     .map((employee) => {
       const role = normalizeRole(employee);
+      const tone = toneFor(role + employee.email);
       return `
-        <article class="data-card">
+        <article class="data-card ${tone}">
           <div class="data-card-header">
-            <div>
-              <h3>${escapeHtml(employee.firstName)} ${escapeHtml(
-                employee.lastName,
-              )}</h3>
-              <p class="muted">${escapeHtml(employee.email)}</p>
+            <div class="identity-line">
+              <div class="avatar ${tone}">${escapeHtml(
+                initials(employee.firstName, employee.lastName),
+              )}</div>
+              <div>
+                <h3>${escapeHtml(employee.firstName)} ${escapeHtml(
+                  employee.lastName,
+                )}</h3>
+                <p class="muted">${escapeHtml(employee.email)}</p>
+                <span class="role-badge ${role.toLowerCase()}">${escapeHtml(
+                  role,
+                )}</span>
+              </div>
             </div>
             ${
               canManageEmployees()
@@ -458,7 +534,9 @@ function renderEmployees() {
             }
           </div>
           <div class="meta-grid">
-            <div><span>Role</span><strong>${escapeHtml(role)}</strong></div>
+            <div><span>Job Title</span><strong>${escapeHtml(
+              employee.jobTitle || "Not set",
+            )}</strong></div>
             <div><span>Department</span><strong>${escapeHtml(
               employee.department?.name || "Unassigned",
             )}</strong></div>
@@ -485,15 +563,21 @@ function renderLeaveTypes() {
   }
 
   container.innerHTML = state.data.leaveTypes
-    .map(
-      (leaveType) => `
-        <article class="data-card">
+    .map((leaveType) => {
+      const tone = toneFor(leaveType.name);
+      return `
+        <article class="data-card ${tone}">
           <div class="data-card-header">
-            <div>
-              <h3>${escapeHtml(leaveType.name)}</h3>
-              <p class="muted">${escapeHtml(
-                leaveType.description || "No description",
-              )}</p>
+            <div class="identity-line">
+              <div class="avatar ${tone}">${escapeHtml(
+                initials(leaveType.name, "policy") || "P",
+              )}</div>
+              <div>
+                <h3>${escapeHtml(leaveType.name)}</h3>
+                <p class="muted">${escapeHtml(
+                  leaveType.description || "No description",
+                )}</p>
+              </div>
             </div>
             ${
               canManageLeaveTypes()
@@ -513,8 +597,8 @@ function renderLeaveTypes() {
             }</strong></div>
           </div>
         </article>
-      `,
-    )
+      `;
+    })
     .join("");
 }
 
@@ -529,7 +613,7 @@ function renderAuditLogs() {
   container.innerHTML = state.data.auditLogs
     .map(
       (log) => `
-        <article class="data-card">
+        <article class="data-card ${toneFor(log.entityName)}">
           <div class="data-card-header">
             <div>
               <h3>${escapeHtml(log.entityName)} ${escapeHtml(log.action)}</h3>
@@ -636,8 +720,7 @@ function openApprovalDialog(id, action) {
   $("approvalTitle").textContent = request.leaveType?.name || "Leave Request";
   $("confirmApproval").textContent =
     action === "approve" ? "Approve" : "Reject";
-  $("confirmApproval").className =
-    action === "approve" ? "primary" : "danger";
+  $("confirmApproval").className = action === "approve" ? "primary" : "danger";
   $("approvalDialog").showModal();
 }
 
