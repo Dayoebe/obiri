@@ -8,6 +8,7 @@ import { EmployeesModule } from "./employees/employees.module";
 import { LeaveRequestsModule } from "./leave-requests/leave-requests.module";
 import { LeaveTypesModule } from "./leave-types/leave-types.module";
 import { RolesModule } from "./roles/roles.module";
+import { WebModule } from "./web/web.module";
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { RolesModule } from "./roles/roles.module";
     LeaveTypesModule,
     LeaveRequestsModule,
     AuditLogsModule,
+    WebModule,
   ],
 })
 export class AppModule {}

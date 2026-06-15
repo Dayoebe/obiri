@@ -50,6 +50,12 @@ The API starts on:
 http://localhost:3000
 ```
 
+The responsive web app is available at:
+
+```text
+http://localhost:3000/
+```
+
 Swagger is available at:
 
 ```text
@@ -88,6 +94,12 @@ Start the API:
 
 ```bash
 npm run start:dev
+```
+
+Then open the responsive web app:
+
+```text
+http://localhost:3000/
 ```
 
 ## Environment Variables

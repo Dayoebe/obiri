@@ -1,11 +1,17 @@
 import { ClassSerializerInterceptor, ValidationPipe } from "@nestjs/common";
 import { NestFactory, Reflector } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { join } from "node:path";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const reflector = app.get(Reflector);
+
+  app.useStaticAssets(join(process.cwd(), "public"), {
+    index: false,
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
