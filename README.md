@@ -62,6 +62,12 @@ Swagger is available at:
 http://localhost:3000/docs
 ```
 
+Runtime health is available at:
+
+```text
+http://localhost:3000/health
+```
+
 The Docker container runs the seed script before starting the API. The seed script is idempotent, so it can be run multiple times safely.
 
 ## Local Setup
@@ -104,17 +110,17 @@ http://localhost:3000/
 
 ## Environment Variables
 
-| Variable | Description | Example |
-| --- | --- | --- |
-| `PORT` | API port | `3000` |
-| `DB_HOST` | PostgreSQL host | `localhost` |
-| `DB_PORT` | PostgreSQL port | `5432` |
-| `DB_USERNAME` | PostgreSQL username | `leave_user` |
-| `DB_PASSWORD` | PostgreSQL password | `leave_password` |
-| `DB_DATABASE` | PostgreSQL database | `leave_management` |
-| `TYPEORM_SYNC` | Auto-create schema for local/demo use | `true` |
-| `JWT_SECRET` | JWT signing secret | `change-this-secret-in-production` |
-| `JWT_EXPIRES_IN` | JWT expiry | `1d` |
+| Variable         | Description                           | Example                            |
+| ---------------- | ------------------------------------- | ---------------------------------- |
+| `PORT`           | API port                              | `3000`                             |
+| `DB_HOST`        | PostgreSQL host                       | `localhost`                        |
+| `DB_PORT`        | PostgreSQL port                       | `5432`                             |
+| `DB_USERNAME`    | PostgreSQL username                   | `leave_user`                       |
+| `DB_PASSWORD`    | PostgreSQL password                   | `leave_password`                   |
+| `DB_DATABASE`    | PostgreSQL database                   | `leave_management`                 |
+| `TYPEORM_SYNC`   | Auto-create schema for local/demo use | `true`                             |
+| `JWT_SECRET`     | JWT signing secret                    | `change-this-secret-in-production` |
+| `JWT_EXPIRES_IN` | JWT expiry                            | `1d`                               |
 
 For production, use a strong `JWT_SECRET`, managed secrets, TLS, and migrations instead of schema synchronization.
 
@@ -138,26 +144,26 @@ All seeded users use this password:
 Password123!
 ```
 
-| Role | Email |
-| --- | --- |
-| Admin | `admin@erp.local` |
-| HR | `hr@erp.local` |
+| Role                | Email                           |
+| ------------------- | ------------------------------- |
+| Admin               | `admin@erp.local`               |
+| HR                  | `hr@erp.local`                  |
 | Engineering Manager | `manager.engineering@erp.local` |
-| Finance Manager | `manager.finance@erp.local` |
-| Employee | `employee1@erp.local` |
-| Employee | `employee2@erp.local` |
-| Employee | `employee3@erp.local` |
-| Employee | `employee4@erp.local` |
-| Employee | `employee5@erp.local` |
+| Finance Manager     | `manager.finance@erp.local`     |
+| Employee            | `employee1@erp.local`           |
+| Employee            | `employee2@erp.local`           |
+| Employee            | `employee3@erp.local`           |
+| Employee            | `employee4@erp.local`           |
+| Employee            | `employee5@erp.local`           |
 
 ## RBAC Summary
 
-| Role | Permissions |
-| --- | --- |
-| `EMPLOYEE` | Submit leave requests and view own requests. |
-| `MANAGER` | View own and subordinate requests; approve/reject subordinate requests at manager stage. |
-| `HR` | View all requests, manage leave types, and perform final HR approvals/rejections. |
-| `ADMIN` | Full access across the module. |
+| Role       | Permissions                                                                              |
+| ---------- | ---------------------------------------------------------------------------------------- |
+| `EMPLOYEE` | Submit leave requests and view own requests.                                             |
+| `MANAGER`  | View own and subordinate requests; approve/reject subordinate requests at manager stage. |
+| `HR`       | View all requests, manage leave types, and perform final HR approvals/rejections.        |
+| `ADMIN`    | Full access across the module.                                                           |
 
 ## API Summary
 
@@ -202,6 +208,12 @@ Assign an employee to a department by sending `departmentId` in `POST /employees
 ### Audit Logs
 
 - `GET /audit-logs`
+
+### Health
+
+- `GET /health`
+
+The Docker image includes a health check that calls this endpoint and verifies database connectivity.
 
 ## Validation Rules
 

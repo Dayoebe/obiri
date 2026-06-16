@@ -9,6 +9,7 @@ const state = {
     requests: [],
     auditLogs: [],
   },
+  health: null,
   approval: null,
 };
 
@@ -151,6 +152,20 @@ async function api(path, options = {}) {
   return payload;
 }
 
+async function fetchHealth() {
+  try {
+    state.health = await api("/health");
+  } catch {
+    state.health = {
+      status: "error",
+      database: "unreachable",
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  renderHealth();
+}
+
 function canManageDepartments() {
   return state.user?.role === "ADMIN";
 }
@@ -260,6 +275,7 @@ function setView(nextView) {
 async function loadData() {
   if (!state.token) return;
 
+  const health = fetchHealth();
   const requests = api("/leave-requests");
   const leaveTypes = api("/leave-types");
   const departments = canViewPeopleData()
@@ -293,6 +309,7 @@ async function loadData() {
     state.data.employees = employeeData;
     state.data.auditLogs = auditData;
 
+    await health;
     renderAll();
   } catch (error) {
     if (/unauthorized|jwt|token/i.test(error.message)) {
@@ -307,6 +324,7 @@ async function loadData() {
 
 function renderAll() {
   updateShellVisibility();
+  renderHealth();
   renderDashboard();
   renderLeaveTypes();
   renderDepartments();
@@ -314,6 +332,26 @@ function renderAll() {
   renderRequests();
   renderAuditLogs();
   populateSelects();
+}
+
+function renderHealth() {
+  const statusElement = $("systemStatus");
+  const sidebarRuntime = $("sidebarRuntime");
+  if (!statusElement || !sidebarRuntime) return;
+
+  const isHealthy = state.health?.status === "ok";
+  statusElement.classList.toggle("ok", isHealthy);
+  statusElement.classList.toggle("error", Boolean(state.health) && !isHealthy);
+  statusElement.querySelector("strong").textContent = isHealthy
+    ? "System online"
+    : state.health
+      ? "System attention"
+      : "Checking system";
+  sidebarRuntime.textContent = isHealthy
+    ? "API + DB online"
+    : state.health
+      ? "Check database"
+      : "Checking health";
 }
 
 function renderDashboard() {
@@ -339,6 +377,42 @@ function renderDashboard() {
   $("dashboardNarrative").textContent = pending.length
     ? `${pending.length} pending request${pending.length === 1 ? "" : "s"} moving through manager and HR review.`
     : "No pending approvals are waiting in the current role queue.";
+
+  const activePolicies = state.data.leaveTypes.filter(
+    (leaveType) => leaveType.isActive,
+  );
+  const largestPolicy = [...activePolicies].sort(
+    (a, b) => b.annualAllowanceDays - a.annualAllowanceDays,
+  )[0];
+  const activeEmployees = state.data.employees.filter(
+    (employee) => employee.isActive,
+  );
+  const managerCount = state.data.employees.filter((employee) =>
+    ["ADMIN", "HR", "MANAGER"].includes(normalizeRole(employee)),
+  ).length;
+
+  $("policySpotlightTitle").textContent = largestPolicy
+    ? `${largestPolicy.name}: ${largestPolicy.annualAllowanceDays} days`
+    : "Leave policies ready";
+  $("policySpotlightText").textContent = activePolicies.length
+    ? `${activePolicies.length} active leave polic${activePolicies.length === 1 ? "y" : "ies"} are available for employee requests.`
+    : "No active leave policies are currently available.";
+  $("teamPulseTitle").textContent = activeEmployees.length
+    ? `${activeEmployees.length} active people across ${state.data.departments.length || "their"} departments`
+    : "People directory loaded";
+  $("teamPulseText").textContent = canViewPeopleData()
+    ? `${managerCount} approver${managerCount === 1 ? "" : "s"} can participate in manager or HR workflow stages.`
+    : "Your personal request workspace is ready for self-service leave submission.";
+  $("readinessTitle").textContent =
+    state.health?.status === "ok"
+      ? "API and database are healthy"
+      : "Runtime status needs attention";
+  $("readinessText").textContent =
+    state.health?.status === "ok"
+      ? `Last health check confirmed database access at ${formatDateTime(
+          state.health.timestamp,
+        )}.`
+      : "The browser will continue to refresh runtime status when data reloads.";
 
   renderRequestCollection($("pendingActions"), actionable.slice(0, 4), {
     compact: true,
@@ -994,6 +1068,7 @@ async function boot() {
   wireEvents();
   updateShellVisibility();
   setView("dashboard");
+  await fetchHealth();
 
   if (state.token && state.user) {
     await loadData();

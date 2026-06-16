@@ -10,14 +10,19 @@
     <main id="loginScreen" class="login-shell">
       <section class="login-showcase" aria-label="Leave operations overview">
         <div class="showcase-header">
-          <p class="eyebrow">People Operations</p>
-          <h1>
-            Leave planning with approvals, policy control, and audit trail.
-          </h1>
+          <p class="eyebrow">Production Leave Desk</p>
+          <h1>A brighter way to manage time-off across the business.</h1>
           <p>
-            A complete workspace for HR teams, managers, and employees to keep
-            time-off decisions clear and accountable.
+            Obiri gives employees a clean self-service path, managers a focused
+            approval queue, and HR the final control layer with policy and audit
+            visibility.
           </p>
+        </div>
+        <div class="platform-tags" aria-label="Platform capabilities">
+          <span>JWT secured</span>
+          <span>RBAC workflow</span>
+          <span>PostgreSQL data</span>
+          <span>Docker ready</span>
         </div>
         <div class="showcase-grid">
           <article class="showcase-card tone-teal">
@@ -57,8 +62,8 @@
           <p class="eyebrow">ERP Leave Management</p>
           <h1>Obiri</h1>
           <p class="muted">
-            Manage employee leave, manager approvals, HR final review,
-            departments, employees, policies, and audit history.
+            Sign in to work with seeded users, policies, approvals, audit logs,
+            and a ready-to-demo workflow.
           </p>
         </div>
 
@@ -108,6 +113,14 @@
           </div>
         </div>
 
+        <div class="login-note">
+          <strong>Demo data included</strong>
+          <span>
+            The seed creates departments, employees, leave policies, approval
+            history, and active requests so the workspace has real content.
+          </span>
+        </div>
+
         <p id="loginError" class="error-text" role="alert"></p>
       </section>
     </main>
@@ -124,6 +137,10 @@
         <div class="sidebar-summary">
           <span>Approval route</span>
           <strong>Manager -> HR</strong>
+        </div>
+        <div class="sidebar-summary light">
+          <span>Runtime</span>
+          <strong id="sidebarRuntime">Checking health</strong>
         </div>
         <nav id="appNav" class="nav-list" aria-label="Application views">
           <button class="active" type="button" data-view="dashboard">
@@ -145,6 +162,10 @@
           <div>
             <p id="currentRole" class="eyebrow">Signed in</p>
             <h1 id="pageTitle">Dashboard</h1>
+          </div>
+          <div id="systemStatus" class="system-status">
+            <span></span>
+            <strong>Checking system</strong>
           </div>
           <div class="user-box">
             <div>
@@ -223,6 +244,30 @@
             <article>
               <span>04</span>
               <strong>Audit records</strong>
+            </article>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <p class="eyebrow">Policy Spotlight</p>
+              <h2 id="policySpotlightTitle">Leave policies ready</h2>
+              <p id="policySpotlightText">
+                Active leave types are available for employee requests.
+              </p>
+            </article>
+            <article class="insight-card accent-warm">
+              <p class="eyebrow">Team Pulse</p>
+              <h2 id="teamPulseTitle">People directory loaded</h2>
+              <p id="teamPulseText">
+                Departments and reporting lines are available for review.
+              </p>
+            </article>
+            <article class="insight-card accent-cool">
+              <p class="eyebrow">Production Readiness</p>
+              <h2 id="readinessTitle">API and database checks</h2>
+              <p id="readinessText">
+                Runtime health is checked from the browser and Docker image.
+              </p>
             </article>
           </div>
 

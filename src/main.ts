@@ -2,6 +2,7 @@ import { ClassSerializerInterceptor, ValidationPipe } from "@nestjs/common";
 import { NestFactory, Reflector } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import helmet from "helmet";
 import { join } from "node:path";
 import { AppModule } from "./app.module";
 
@@ -12,6 +13,11 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), "public"), {
     index: false,
   });
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+    }),
+  );
 
   app.useGlobalPipes(
     new ValidationPipe({

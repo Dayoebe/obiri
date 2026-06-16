@@ -55,6 +55,14 @@ async function seedDepartments() {
       name: "Finance",
       description: "Finance operations, payroll, and reporting.",
     },
+    {
+      name: "Customer Success",
+      description: "Client onboarding, support, and account health.",
+    },
+    {
+      name: "Operations",
+      description: "Internal systems, facilities, and service coordination.",
+    },
   ];
 
   const departmentMap = new Map<string, Department>();
@@ -97,6 +105,16 @@ async function seedLeaveTypes() {
       description: "Leave for bereavement or urgent family circumstances.",
       annualAllowanceDays: 5,
     },
+    {
+      name: "Study Leave",
+      description: "Approved learning, certification, or examination leave.",
+      annualAllowanceDays: 7,
+    },
+    {
+      name: "Unpaid Leave",
+      description: "Unpaid time away from work after manager and HR review.",
+      annualAllowanceDays: 0,
+    },
   ];
 
   const leaveTypeMap = new Map<string, LeaveType>();
@@ -134,6 +152,8 @@ async function seedEmployees(
   const humanResources = departments.get("Human Resources")!;
   const engineering = departments.get("Engineering")!;
   const finance = departments.get("Finance")!;
+  const customerSuccess = departments.get("Customer Success")!;
+  const operations = departments.get("Operations")!;
 
   const employeeMap = new Map<string, Employee>();
 
@@ -218,6 +238,16 @@ async function seedEmployees(
     manager: hr,
   });
 
+  const operationsManager = await upsertEmployee({
+    firstName: "Ife",
+    lastName: "Operations",
+    email: "manager.operations@erp.local",
+    role: roles.MANAGER,
+    department: operations,
+    jobTitle: "Operations Manager",
+    manager: hr,
+  });
+
   await upsertEmployee({
     firstName: "Ada",
     lastName: "Okafor",
@@ -226,6 +256,26 @@ async function seedEmployees(
     department: engineering,
     jobTitle: "Backend Engineer",
     manager: engineeringManager,
+  });
+
+  await upsertEmployee({
+    firstName: "Kemi",
+    lastName: "Johnson",
+    email: "employee6@erp.local",
+    role: roles.EMPLOYEE,
+    department: customerSuccess,
+    jobTitle: "Customer Success Associate",
+    manager: operationsManager,
+  });
+
+  await upsertEmployee({
+    firstName: "Samuel",
+    lastName: "Ibrahim",
+    email: "employee7@erp.local",
+    role: roles.EMPLOYEE,
+    department: operations,
+    jobTitle: "Facilities Coordinator",
+    manager: operationsManager,
   });
 
   await upsertEmployee({
@@ -342,11 +392,14 @@ async function seedLeaveRequests(
   const hr = employees.get("hr@erp.local")!;
   const engineeringManager = employees.get("manager.engineering@erp.local")!;
   const financeManager = employees.get("manager.finance@erp.local")!;
+  const operationsManager = employees.get("manager.operations@erp.local")!;
   const employee1 = employees.get("employee1@erp.local")!;
   const employee2 = employees.get("employee2@erp.local")!;
   const employee3 = employees.get("employee3@erp.local")!;
   const employee4 = employees.get("employee4@erp.local")!;
   const employee5 = employees.get("employee5@erp.local")!;
+  const employee6 = employees.get("employee6@erp.local")!;
+  const employee7 = employees.get("employee7@erp.local")!;
 
   await upsertLeaveRequest({
     employee: employee1,
@@ -439,6 +492,35 @@ async function seedLeaveRequests(
         stage: ApprovalStage.HR,
         decision: ApprovalDecision.APPROVED,
         comments: "Approved on behalf of HR administration.",
+      },
+    ],
+  });
+
+  await upsertLeaveRequest({
+    employee: employee6,
+    leaveType: leaveTypes.get("Study Leave")!,
+    startDate: "2026-07-22",
+    endDate: "2026-07-24",
+    reason: "Certification exam preparation and scheduled test day.",
+    status: LeaveStatus.PENDING,
+    currentStage: ApprovalStage.MANAGER,
+    approvals: [],
+  });
+
+  await upsertLeaveRequest({
+    employee: employee7,
+    leaveType: leaveTypes.get("Unpaid Leave")!,
+    startDate: "2026-08-03",
+    endDate: "2026-08-07",
+    reason: "Personal travel request outside paid leave entitlement.",
+    status: LeaveStatus.PENDING,
+    currentStage: ApprovalStage.HR,
+    approvals: [
+      {
+        approver: operationsManager,
+        stage: ApprovalStage.MANAGER,
+        decision: ApprovalDecision.APPROVED,
+        comments: "Operations cover has been assigned.",
       },
     ],
   });

@@ -5,6 +5,7 @@ import { AuditLogsModule } from "./audit-logs/audit-logs.module";
 import { AuthModule } from "./auth/auth.module";
 import { DepartmentsModule } from "./departments/departments.module";
 import { EmployeesModule } from "./employees/employees.module";
+import { HealthModule } from "./health/health.module";
 import { LeaveRequestsModule } from "./leave-requests/leave-requests.module";
 import { LeaveTypesModule } from "./leave-types/leave-types.module";
 import { RolesModule } from "./roles/roles.module";
@@ -33,6 +34,7 @@ import { WebModule } from "./web/web.module";
     }),
     RolesModule,
     AuthModule,
+    HealthModule,
     DepartmentsModule,
     EmployeesModule,
     LeaveTypesModule,
